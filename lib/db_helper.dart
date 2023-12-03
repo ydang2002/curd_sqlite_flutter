@@ -55,4 +55,25 @@ class SQLHelper {
       await db.delete('data', where: "id = ?", whereArgs: [id]);
     } catch (e) {}
   }
+
+  static Future<List<Map<String, dynamic>>> searchDataByTitle(String title) async {
+    final db = await SQLHelper.db();
+    return db.query('data', where: "title LIKE ?", whereArgs: ['%$title%'], orderBy: 'id');
+  }
+
+
 }
+
+
+//Title là int
+/*static Future<List<Map<String, dynamic>>> searchDataByTitle(int title) async {
+  final db = await SQLHelper.db();
+  return db.query('data', where: "title = ?", whereArgs: [title], orderBy: 'id');
+}
+*/
+
+/*static Future<List<Map<String, dynamic>>> searchByTitleAndDesc(String title, String desc) async {
+  final db = await SQLHelper.db();
+  return db.query('data', where: "title LIKE ? AND desc LIKE ?", whereArgs: ['%$title%', '%$desc%'], orderBy: 'id');
+}
+*/

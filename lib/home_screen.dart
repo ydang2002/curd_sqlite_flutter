@@ -8,8 +8,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> _allData = [];
-
   bool _isLoading = true;
+  TextEditingController _searchController = TextEditingController();
+  TextEditingController _descSearchController = TextEditingController();
 
   void _refreshData() async {
     final data = await SQLHelper.getAllData();
@@ -20,7 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  void inntState() {
+  void initState() {
     super.initState();
     _refreshData();
   }
@@ -38,87 +39,88 @@ class _HomeScreenState extends State<HomeScreen> {
   void _deleteData(int id) async {
     await SQLHelper.deleteData(id);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        backgroundColor: Colors.redAccent, content: Text("Data Delete")));
+        backgroundColor: Colors.redAccent, content: Text("Data Deleted")));
     _refreshData();
+  }
+
+  Future<void> _searchData(String query) async {
+    final searchData = await SQLHelper.searchDataByTitle(query);
+    setState(() {
+      _allData = searchData;
+    });
   }
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
 
   void showBottomSheet(int? id) async {
-    //nếu id không rỗng thì nó sẽ cập nhật nếu không nó sẽ có dữ liệu mới
-    //khi nhấn biểu tượng chỉnh sửa, chúng sẽ được chuyển sang chức năng trang dưới cùng và nó sẽ chỉnh sửa
     if (id != null) {
-      final existingData =
-      _allData.firstWhere((element) => element['id'] == id);
+      final existingData = _allData.firstWhere((element) => element['id'] == id);
       _titleController.text = existingData['title'];
       _descController.text = existingData['desc'];
     }
 
     showModalBottomSheet(
-        elevation: 5,
-        isScrollControlled: true,
-        context: context,
-        builder: (_) =>
-            Container(
-              padding: EdgeInsets.only(
-                top: 30,
-                left: 15,
-                right: 15,
-                bottom: MediaQuery
-                    .of(context)
-                    .viewInsets
-                    .bottom + 5,
+      elevation: 5,
+      isScrollControlled: true,
+      context: context,
+      builder: (_) => Container(
+        padding: EdgeInsets.only(
+          top: 30,
+          left: 15,
+          right: 15,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 5,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            TextField(
+              controller: _titleController,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: "Title",
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  TextField(
-                    controller: _titleController,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: "Title",
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  TextField(
-                    controller: _descController,
-                    maxLines: 4,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: "Description",
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        if (id == null) {
-                          await _addData();
-                        }
-                        if (id != null) {
-                          await _updateData(id);
-                        }
-
-                        _titleController.text = "";
-                        _descController.text = "";
-
-                        //hide bottom sheet
-                        Navigator.of(context).pop();
-                        print("Data Added");
-                      },
-                      child: Padding(
-                        padding: EdgeInsets.all(18),
-                        child: Text(id == null ? "Add Data" : "Update",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                      ),
-                      ),
-                    ),
-                  )
-                ],
+            ),
+            SizedBox(height: 10),
+            TextField(
+              controller: _descController,
+              maxLines: 4,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: "Description",
               ),
-            ));
+            ),
+            SizedBox(height: 20),
+            Center(
+              child: ElevatedButton(
+                onPressed: () async {
+                  if (id == null) {
+                    await _addData();
+                  }
+                  if (id != null) {
+                    await _updateData(id);
+                  }
+
+                  _titleController.text = "";
+                  _descController.text = "";
+
+                  Navigator.of(context).pop();
+                  print("Data Added");
+                },
+                child: Padding(
+                  padding: EdgeInsets.all(18),
+                  child: Text(
+                    id == null ? "Add Data" : "Update",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -128,14 +130,42 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text("CRUD Operations"),
       ),
-      body: _isLoading
-          ? Center(
-        child: CircularProgressIndicator(),
-      )
-          : ListView.builder(
-          itemCount: _allData.length,
-          itemBuilder: (context, index) =>
-              Card(
+      body: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.all(10),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                _searchData(value);
+              },
+              decoration: InputDecoration(
+                labelText: 'Tìm kiếm theo Title',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          // Padding(
+          //   padding: EdgeInsets.all(10),
+          //   child: TextField(
+          //     controller: _descSearchController,
+          //     onChanged: (value) {
+          //       // _searchData(_searchController.text, _descSearchController.text);
+          //     },
+          //     decoration: InputDecoration(
+          //       labelText: 'Search by Description',
+          //       border: OutlineInputBorder(),
+          //     ),
+          //   ),
+          // ),
+          Expanded(
+            child: _isLoading
+                ? Center(
+              child: CircularProgressIndicator(),
+            )
+                : ListView.builder(
+              itemCount: _allData.length,
+              itemBuilder: (context, index) => Card(
                 margin: EdgeInsets.all(10),
                 child: ListTile(
                   title: Padding(
@@ -151,17 +181,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      IconButton(onPressed: () {
-                        showBottomSheet(_allData[index]['id']);
-                      },
-                          icon: Icon(
-                            Icons.edit,
-                            color: Colors.indigo,
-                          ),
+                      IconButton(
+                        onPressed: () {
+                          showBottomSheet(_allData[index]['id']);
+                        },
+                        icon: Icon(
+                          Icons.edit,
+                          color: Colors.indigo,
+                        ),
                       ),
-                      IconButton(onPressed: () {
-                        _deleteData(_allData[index]['id']);
-                      },
+                      IconButton(
+                        onPressed: () {
+                          _deleteData(_allData[index]['id']);
+                        },
                         icon: Icon(
                           Icons.delete,
                           color: Colors.redAccent,
@@ -170,7 +202,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
-              )),
+              ),
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => showBottomSheet(null),
         child: Icon(Icons.add),
@@ -178,3 +214,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
+/*void _searchData(String title, String desc) async {
+  final searchData = await SQLHelper.searchByTitleAndDesc(title, desc);
+  setState(() {
+    _allData = searchData;
+  });
+}
+*/
